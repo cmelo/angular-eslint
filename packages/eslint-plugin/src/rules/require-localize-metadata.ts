@@ -6,12 +6,14 @@ type Options = [
   {
     readonly requireDescription?: boolean;
     readonly requireMeaning?: boolean;
+    readonly requireId?: boolean;
   },
 ];
 
 const DEFAULT_OPTIONS: Options[number] = {
   requireDescription: false,
   requireMeaning: false,
+  requireId: false,
 };
 
 const VALID_LOCALIZED_STRING_WITH_DESCRIPTION = new RegExp(
@@ -22,13 +24,18 @@ const VALID_LOCALIZED_STRING_WITH_MEANING = new RegExp(
   /:([\w\s]+\|)(.*)?(@@.*)?:.+/,
 );
 
+const VALID_LOCALIZED_STRING_WITH_ID = new RegExp(
+  /:(.*\|)?([\w\s]+)?(@@.*):.+/,
+);
+
 const STYLE_GUIDE_LINK = 'https://angular.io/guide/i18n';
 const STYLE_GUIDE_LINK_COMMON_PREPARE = `${STYLE_GUIDE_LINK}-common-prepare`;
 const STYLE_GUIDE_LINK_METADATA_FOR_TRANSLATION = `${STYLE_GUIDE_LINK_COMMON_PREPARE}#i18n-metadata-for-translation`;
 
 export type MessageIds =
   | 'requireLocalizeDescription'
-  | 'requireLocalizeMeaning';
+  | 'requireLocalizeMeaning'
+  | 'requireLocalizeId';
 export const RULE_NAME = 'require-localize-metadata';
 
 export default createESLintRule<Options, MessageIds>({
@@ -51,6 +58,10 @@ export default createESLintRule<Options, MessageIds>({
             type: 'boolean',
             default: DEFAULT_OPTIONS.requireMeaning,
           },
+          requireId: {
+            type: 'boolean',
+            default: DEFAULT_OPTIONS.requireId,
+          },
         },
         additionalProperties: false,
       },
@@ -58,16 +69,17 @@ export default createESLintRule<Options, MessageIds>({
     messages: {
       requireLocalizeDescription: `$localize tagged messages should contain a description. See more at ${STYLE_GUIDE_LINK_METADATA_FOR_TRANSLATION}`,
       requireLocalizeMeaning: `$localize tagged messages should contain a meaning. See more at ${STYLE_GUIDE_LINK_METADATA_FOR_TRANSLATION}`,
+      requireLocalizeId: `$localize tagged messages should contain ID. See more at ${STYLE_GUIDE_LINK_METADATA_FOR_TRANSLATION}`,
     },
   },
   defaultOptions: [DEFAULT_OPTIONS],
-  create(context, [{ requireDescription, requireMeaning }]) {
+  create(context, [{ requireDescription, requireMeaning, requireId }]) {
     return {
       TaggedTemplateExpression(
         taggedTemplateExpression: TSESTree.TaggedTemplateExpression,
       ) {
         if (
-          (requireDescription || requireMeaning) &&
+          (requireDescription || requireMeaning || requireId) &&
           ASTUtils.isIdentifier(taggedTemplateExpression.tag)
         ) {
           const identifierName = taggedTemplateExpression.tag.name;
@@ -95,6 +107,16 @@ export default createESLintRule<Options, MessageIds>({
               context.report({
                 loc: templateElement.loc,
                 messageId: 'requireLocalizeMeaning',
+              });
+            }
+
+            if (
+              requireId &&
+              !VALID_LOCALIZED_STRING_WITH_ID.test(templateElementRawValue)
+            ) {
+              context.report({
+                loc: templateElement.loc,
+                messageId: 'requireLocalizeId',
               });
             }
           }

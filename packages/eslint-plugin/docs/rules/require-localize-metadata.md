@@ -29,6 +29,7 @@ The rule accepts an options object with the following properties:
 interface Options {
   requireDescription?: boolean;
   requireMeaning?: boolean;
+  requireId?: boolean;
 }
 
 ```
